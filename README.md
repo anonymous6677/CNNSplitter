@@ -1,0 +1,1447 @@
+# Patching Weak Convolutional Neural Network Models through Modularization and Composition
+
+## Abstract
+This repository includes the code and experimental data in our paper entitled 
+"Patching Weak Convolutional Neural Network Models through Modularization and Composition". 
+
+In this paper, we propose a structured modularization approach, CNNSplitter, which decomposes a strong CNN model for $N$-class classification into $N$ CNN modules. 
+Each module is a sub-model containing a part of the convolution kernels of the strong model. 
+To patch a weak CNN model with low performance on a target class, we compose the weak CNN model with the corresponding module obtained from a strong CNN model. 
+The ability of the weak CNN model to recognize the target class can thus be improved through patching.
+
+
+## Requirements
++ python 3.8.10<br>
++ pytorch 1.8.1<br>
++ numpy 1.19.2<br>
++ tqdm 4.61.0<br>
++ matplotlib 3.4.2<br>
++ seaborn 0.11.1<br>
++ GPU with CUDA support is also needed
+
+
+## How to install
+Install the dependent packages via pip:
+
+    $ pip install numpy==1.19.2 tqdm==4.61.0 matplotlib==3.4.2 seaborn==0.11.1
+    
+Install pytorch according to your environment, see https://pytorch.org/.
+
+
+## How to modularize a trained CNN model
+1. modify `global_configure.py` to set the `root_dir`.
+2. run `python train.py --model simcnn --dataset cifar10` to get the pre-trained model `SimCNN-CIFAR`.
+3. run `python kernel_importance_analyzer.py --model simcnn --dataset cifar10` in directory `preprocess/` to get the importance of each kernel in `SimCNN-CIFAR`.
+4. run `python run_layer_sensitivity_analyzer.py --model simcnn --dataset cifar10` in directory `scripts/` to analyze the sensitivity of `SimCNN-CIFAR`.
+5. modify `configures/simcnn_cifar10.py` to set the configures of GA searching.
+6. run `python module_recorder.py --model simcnn --dataset cifar10`.
+7. run `python module_explorer.py --model simcnn --dataset cifar10 --target_class 0` with 10 instances in parallel (`--target_class` from 0 to 9), each of which searches for one class. 
+
+We provide the four trained CNN models and the corresponding modules, as well as the weak models.\
+One can download `data/` from [here](https://mega.nz/folder/UhtBCIZI#zZMWav7aJMHvEMYDdZ8IIg) and reuse a module to patch a weak CNN model following the description below. 
+
+## How to patch a weak CNN model
+### preparing
+1. run `python module_output_collector.py --model simcnn --dataset cifar10` in directory `preprocess/` to collect the outputs of 10 modules.
+
+### Patching a simple model
+1. run `python train.py --model simcnn --dataset cifar10` in directory `experiments/patch/patch_for_weak_model` to train an overly simple SimCNN-CIFAR.
+2. run `python apply_patch.py --model simcnn --dataset cifar10 --exp_type weak --target_class 0 --target_epoch 99` in directory `experiments/patch` to patch the simple SimCNN-CIFAR.
+
+### Patching an overfitting/underfitting model
+1. run `python train.py --model simcnn --dataset cifar10` in directory `experiments/patch/patch_for_poor_model` to train an overfitting/underfitting SimCNN-CIFAR.
+2. run `python apply_patch.py --model simcnn --dataset cifar10 --exp_type poor_fit --target_class 0 --target_epoch 169` in directory `experiments/patch` to patch the overfitting SimCNN-CIFAR. 
+3. run `python apply_patch.py --model simcnn --dataset cifar10 --exp_type poor_fit --target_class 0 --target_epoch 84` in directory `experiments/patch` to patch the underfitting SimCNN-CIFAR.
+
+
+## Supplementary experimental results
+The detailed results about the Precision, Recall, and F1-score for all classes.
+
+### F1-score on CIFAR: 
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="11">SimCNN</td>
+    <td>airplane</td>
+    <td>75.65</td>
+    <td>74.73</td>
+    <td>47.12</td>
+    <td>61.63</td>
+    <td>55.61</td>
+    <td>60.96</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>90.14</td>
+    <td>92.78</td>
+    <td>64.74</td>
+    <td>81.61</td>
+    <td>67.65</td>
+    <td>75.56</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>68.72</td>
+    <td>68.26</td>
+    <td>36.60</td>
+    <td>68.42</td>
+    <td>56.25</td>
+    <td>61.99</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>58.37</td>
+    <td>60.64</td>
+    <td>23.78</td>
+    <td>39.60</td>
+    <td>40.00</td>
+    <td>43.43</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>68.69</td>
+    <td>71.82</td>
+    <td>35.84</td>
+    <td>73.30</td>
+    <td>56.05</td>
+    <td>59.52</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>71.22</td>
+    <td>74.16</td>
+    <td>24.84</td>
+    <td>62.80</td>
+    <td>50.98</td>
+    <td>52.87</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>76.92</td>
+    <td>78.82</td>
+    <td>47.13</td>
+    <td>62.37</td>
+    <td>62.39</td>
+    <td>72.82</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>73.51</td>
+    <td>75.14</td>
+    <td>12.61</td>
+    <td>52.94</td>
+    <td>58.46</td>
+    <td>66.67</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>76.85</td>
+    <td>78.76</td>
+    <td>9.52</td>
+    <td>68.48</td>
+    <td>69.57</td>
+    <td>73.10</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>77.51</td>
+    <td>81.67</td>
+    <td>52.43</td>
+    <td>74.71</td>
+    <td>64.45</td>
+    <td>69.07</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>73.76</td>
+    <td>75.68</td>
+    <td>35.46</td>
+    <td>64.59</td>
+    <td>58.14</td>
+    <td>63.60</td>
+  </tr>
+  <tr>
+    <td rowspan="11">ResCNN</td>
+    <td>airplane</td>
+    <td>76.41</td>
+    <td>77.84</td>
+    <td>47.35</td>
+    <td>66.28</td>
+    <td>64.36</td>
+    <td>65.52</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>88.12</td>
+    <td>91.30</td>
+    <td>50.32</td>
+    <td>62.07</td>
+    <td>61.19</td>
+    <td>75.71</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>74.73</td>
+    <td>72.84</td>
+    <td>18.18</td>
+    <td>59.87</td>
+    <td>53.66</td>
+    <td>62.35</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>65.56</td>
+    <td>67.50</td>
+    <td>5.71</td>
+    <td>54.64</td>
+    <td>46.51</td>
+    <td>49.67</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>63.22</td>
+    <td>63.16</td>
+    <td>31.64</td>
+    <td>49.30</td>
+    <td>55.00</td>
+    <td>57.83</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>74.21</td>
+    <td>77.61</td>
+    <td>38.28</td>
+    <td>58.76</td>
+    <td>46.39</td>
+    <td>50.56</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>78.43</td>
+    <td>83.77</td>
+    <td>55.43</td>
+    <td>79.81</td>
+    <td>63.37</td>
+    <td>67.39</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>75.27</td>
+    <td>74.25</td>
+    <td>47.43</td>
+    <td>65.00</td>
+    <td>58.29</td>
+    <td>67.88</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>79.81</td>
+    <td>81.44</td>
+    <td>9.09</td>
+    <td>53.24</td>
+    <td>70.24</td>
+    <td>75.79</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>80.88</td>
+    <td>81.61</td>
+    <td>40.92</td>
+    <td>81.52</td>
+    <td>56.04</td>
+    <td>68.18</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>75.66</td>
+    <td>77.13</td>
+    <td>34.43</td>
+    <td>63.05</td>
+    <td>57.51</td>
+    <td>64.09</td>
+  </tr>
+</tbody>
+</table>
+
+### F1-score on SVHN: 
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="6">SimCNN</td>
+    <td>0</td>
+    <td>90.09</td>
+    <td>92.07</td>
+    <td>21.68</td>
+    <td>69.36</td>
+    <td>89.11</td>
+    <td>90.02</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>94.70</td>
+    <td>94.89</td>
+    <td>94.59</td>
+    <td>95.52</td>
+    <td>96.38</td>
+    <td>96.53</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>94.44</td>
+    <td>95.62</td>
+    <td>94.91</td>
+    <td>95.37</td>
+    <td>95.40</td>
+    <td>95.62</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>90.34</td>
+    <td>90.87</td>
+    <td>88.08</td>
+    <td>88.77</td>
+    <td>90.89</td>
+    <td>90.83</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>93.76</td>
+    <td>95.08</td>
+    <td>89.31</td>
+    <td>92.90</td>
+    <td>93.64</td>
+    <td>94.31</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>92.67</td>
+    <td>93.71</td>
+    <td>77.71</td>
+    <td>88.38</td>
+    <td>93.08</td>
+    <td>93.46</td>
+  </tr>
+  <tr>
+    <td rowspan="6">ResCNN</td>
+    <td>0</td>
+    <td>86.54</td>
+    <td>89.99</td>
+    <td>84.27</td>
+    <td>88.79</td>
+    <td>90.78</td>
+    <td>91.63</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>93.41</td>
+    <td>95.65</td>
+    <td>60.75</td>
+    <td>54.77</td>
+    <td>94.12</td>
+    <td>96.37</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>95.09</td>
+    <td>94.79</td>
+    <td>95.09</td>
+    <td>94.02</td>
+    <td>95.09</td>
+    <td>95.54</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>89.91</td>
+    <td>90.94</td>
+    <td>85.13</td>
+    <td>88.58</td>
+    <td>89.05</td>
+    <td>89.04</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>94.46</td>
+    <td>95.12</td>
+    <td>72.93</td>
+    <td>85.39</td>
+    <td>94.47</td>
+    <td>95.47</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>91.88</td>
+    <td>93.30</td>
+    <td>79.63</td>
+    <td>82.31</td>
+    <td>92.70</td>
+    <td>93.61</td>
+  </tr>
+</tbody>
+</table>
+
+### Precision on CIFAR:
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="11">SimCNN</td>
+    <td>airplane</td>
+    <td>78.49</td>
+    <td>82.93</td>
+    <td>45.37</td>
+    <td>73.61</td>
+    <td>54.29</td>
+    <td>65.52</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>84.96</td>
+    <td>95.74</td>
+    <td>62.62</td>
+    <td>95.95</td>
+    <td>66.35</td>
+    <td>85.00</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>70.53</td>
+    <td>85.07</td>
+    <td>33.06</td>
+    <td>72.22</td>
+    <td>50.81</td>
+    <td>74.65</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>55.96</td>
+    <td>64.77</td>
+    <td>25.88</td>
+    <td>29.80</td>
+    <td>43.53</td>
+    <td>50.67</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>69.39</td>
+    <td>80.25</td>
+    <td>42.47</td>
+    <td>66.94</td>
+    <td>62.20</td>
+    <td>73.53</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>69.52</td>
+    <td>84.62</td>
+    <td>35.85</td>
+    <td>60.75</td>
+    <td>50.00</td>
+    <td>62.16</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>74.07</td>
+    <td>77.67</td>
+    <td>34.58</td>
+    <td>47.18</td>
+    <td>57.63</td>
+    <td>74.74</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>80.00</td>
+    <td>89.04</td>
+    <td>63.64</td>
+    <td>100.0</td>
+    <td>60.00</td>
+    <td>84.62</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>75.73</td>
+    <td>81.72</td>
+    <td>100.0</td>
+    <td>75.00</td>
+    <td>67.29</td>
+    <td>74.23</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>74.31</td>
+    <td>85.71</td>
+    <td>50.94</td>
+    <td>87.84</td>
+    <td>61.26</td>
+    <td>71.28</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>73.30</td>
+    <td>82.75</td>
+    <td>49.44</td>
+    <td>70.93</td>
+    <td>57.34</td>
+    <td>71.64</td>
+  </tr>
+  <tr>
+    <td rowspan="11">ResCNN</td>
+    <td>airplane</td>
+    <td>72.32</td>
+    <td>84.71</td>
+    <td>40.00</td>
+    <td>79.17</td>
+    <td>63.73</td>
+    <td>77.03</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>87.25</td>
+    <td>100.0</td>
+    <td>67.80</td>
+    <td>100.0</td>
+    <td>56.30</td>
+    <td>87.01</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>82.93</td>
+    <td>95.16</td>
+    <td>52.38</td>
+    <td>82.46</td>
+    <td>52.38</td>
+    <td>75.71</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>73.75</td>
+    <td>90.00</td>
+    <td>60.00</td>
+    <td>56.38</td>
+    <td>55.56</td>
+    <td>71.70</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>74.32</td>
+    <td>92.31</td>
+    <td>36.36</td>
+    <td>83.33</td>
+    <td>55.00</td>
+    <td>72.73</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>67.77</td>
+    <td>77.23</td>
+    <td>36.70</td>
+    <td>67.53</td>
+    <td>47.87</td>
+    <td>57.69</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>76.92</td>
+    <td>87.91</td>
+    <td>44.31</td>
+    <td>76.85</td>
+    <td>62.75</td>
+    <td>73.81</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>81.40</td>
+    <td>92.54</td>
+    <td>39.22</td>
+    <td>86.67</td>
+    <td>58.59</td>
+    <td>86.15</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>75.22</td>
+    <td>84.04</td>
+    <td>50.00</td>
+    <td>94.87</td>
+    <td>68.57</td>
+    <td>80.00</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>89.16</td>
+    <td>95.95</td>
+    <td>28.74</td>
+    <td>89.29</td>
+    <td>54.21</td>
+    <td>78.95</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>78.10</td>
+    <td>89.99</td>
+    <td>45.55</td>
+    <td>81.66</td>
+    <td>57.50</td>
+    <td>76.08</td>
+  </tr>
+</tbody>
+</table>
+
+### Precision on SVHN:
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="6">SimCNN</td>
+    <td>0</td>
+    <td>88.94</td>
+    <td>95.05</td>
+    <td>25.17</td>
+    <td>74.31</td>
+    <td>89.34</td>
+    <td>92.24</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>96.14</td>
+    <td>96.49</td>
+    <td>92.17</td>
+    <td>94.00</td>
+    <td>96.78</td>
+    <td>97.39</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>93.36</td>
+    <td>96.47</td>
+    <td>95.29</td>
+    <td>96.47</td>
+    <td>95.57</td>
+    <td>96.42</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>89.21</td>
+    <td>95.74</td>
+    <td>89.86</td>
+    <td>96.19</td>
+    <td>93.47</td>
+    <td>95.24</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>93.95</td>
+    <td>97.62</td>
+    <td>87.97</td>
+    <td>94.88</td>
+    <td>93.66</td>
+    <td>95.34</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>92.32</td>
+    <td>96.27</td>
+    <td>78.09</td>
+    <td>91.17</td>
+    <td>93.76</td>
+    <td>95.33</td>
+  </tr>
+  <tr>
+    <td rowspan="6">ResCNN</td>
+    <td>0</td>
+    <td>81.17</td>
+    <td>93.08</td>
+    <td>78.05</td>
+    <td>93.03</td>
+    <td>90.91</td>
+    <td>94.24</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>89.36</td>
+    <td>95.34</td>
+    <td>95.86</td>
+    <td>97.68</td>
+    <td>89.78</td>
+    <td>95.44</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>93.81</td>
+    <td>97.38</td>
+    <td>95.28</td>
+    <td>98.62</td>
+    <td>95.24</td>
+    <td>97.23</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>88.91</td>
+    <td>95.01</td>
+    <td>80.01</td>
+    <td>92.72</td>
+    <td>92.42</td>
+    <td>94.93</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>93.38</td>
+    <td>98.51</td>
+    <td>57.73</td>
+    <td>75.60</td>
+    <td>92.98</td>
+    <td>96.18</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>89.33</td>
+    <td>95.86</td>
+    <td>81.39</td>
+    <td>91.53</td>
+    <td>92.27</td>
+    <td>95.60</td>
+  </tr>
+</tbody>
+</table>
+
+### Recall on CIFAR:
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="11">SimCNN</td>
+    <td>airplane</td>
+    <td>73</td>
+    <td>68</td>
+    <td>49</td>
+    <td>53</td>
+    <td>57</td>
+    <td>57</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>96</td>
+    <td>90</td>
+    <td>67</td>
+    <td>71</td>
+    <td>69</td>
+    <td>68</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>67</td>
+    <td>57</td>
+    <td>41</td>
+    <td>65</td>
+    <td>63</td>
+    <td>53</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>61</td>
+    <td>57</td>
+    <td>22</td>
+    <td>59</td>
+    <td>37</td>
+    <td>38</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>68</td>
+    <td>65</td>
+    <td>31</td>
+    <td>81</td>
+    <td>51</td>
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>73</td>
+    <td>66</td>
+    <td>19</td>
+    <td>65</td>
+    <td>52</td>
+    <td>46</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>80</td>
+    <td>80</td>
+    <td>74</td>
+    <td>92</td>
+    <td>68</td>
+    <td>71</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>68</td>
+    <td>65</td>
+    <td>7</td>
+    <td>36</td>
+    <td>57</td>
+    <td>55</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>78</td>
+    <td>76</td>
+    <td>5</td>
+    <td>63</td>
+    <td>72</td>
+    <td>72</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>81</td>
+    <td>78</td>
+    <td>54</td>
+    <td>65</td>
+    <td>68</td>
+    <td>67</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>74.50</td>
+    <td>70.20</td>
+    <td>36.90</td>
+    <td>65.00</td>
+    <td>59.40</td>
+    <td>57.70</td>
+  </tr>
+  <tr>
+    <td rowspan="11">ResCNN</td>
+    <td>airplane</td>
+    <td>81</td>
+    <td>72</td>
+    <td>58</td>
+    <td>57</td>
+    <td>65</td>
+    <td>57</td>
+  </tr>
+  <tr>
+    <td>automobile</td>
+    <td>89</td>
+    <td>84</td>
+    <td>40</td>
+    <td>45</td>
+    <td>67</td>
+    <td>67</td>
+  </tr>
+  <tr>
+    <td>bird</td>
+    <td>68</td>
+    <td>59</td>
+    <td>11</td>
+    <td>47</td>
+    <td>55</td>
+    <td>53</td>
+  </tr>
+  <tr>
+    <td>cat</td>
+    <td>59</td>
+    <td>54</td>
+    <td>3</td>
+    <td>53</td>
+    <td>40</td>
+    <td>38</td>
+  </tr>
+  <tr>
+    <td>deer</td>
+    <td>55</td>
+    <td>48</td>
+    <td>28</td>
+    <td>35</td>
+    <td>55</td>
+    <td>48</td>
+  </tr>
+  <tr>
+    <td>dog</td>
+    <td>82</td>
+    <td>78</td>
+    <td>40</td>
+    <td>52</td>
+    <td>45</td>
+    <td>45</td>
+  </tr>
+  <tr>
+    <td>frog</td>
+    <td>80</td>
+    <td>80</td>
+    <td>74</td>
+    <td>83</td>
+    <td>64</td>
+    <td>62</td>
+  </tr>
+  <tr>
+    <td>horse</td>
+    <td>70</td>
+    <td>62</td>
+    <td>60</td>
+    <td>52</td>
+    <td>58</td>
+    <td>56</td>
+  </tr>
+  <tr>
+    <td>ship</td>
+    <td>85</td>
+    <td>79</td>
+    <td>5</td>
+    <td>37</td>
+    <td>72</td>
+    <td>72</td>
+  </tr>
+  <tr>
+    <td>truck</td>
+    <td>74</td>
+    <td>71</td>
+    <td>71</td>
+    <td>75</td>
+    <td>58</td>
+    <td>60</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>74.30</td>
+    <td>68.70</td>
+    <td>39.00</td>
+    <td>53.60</td>
+    <td>57.90</td>
+    <td>55.80</td>
+  </tr>
+</tbody>
+</table>
+
+### Recall on SVHN:
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="6">SimCNN</td>
+    <td>0</td>
+    <td>91.28</td>
+    <td>89.28</td>
+    <td>19.04</td>
+    <td>65.02</td>
+    <td>88.88</td>
+    <td>87.9</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>93.31</td>
+    <td>93.35</td>
+    <td>97.14</td>
+    <td>97.1</td>
+    <td>95.98</td>
+    <td>95.69</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>95.54</td>
+    <td>94.79</td>
+    <td>94.53</td>
+    <td>94.29</td>
+    <td>95.23</td>
+    <td>94.84</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>91.5</td>
+    <td>86.47</td>
+    <td>86.36</td>
+    <td>82.41</td>
+    <td>88.45</td>
+    <td>86.81</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>93.58</td>
+    <td>92.67</td>
+    <td>90.69</td>
+    <td>91</td>
+    <td>93.62</td>
+    <td>93.3</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>93.04</td>
+    <td>91.31</td>
+    <td>77.55</td>
+    <td>85.96</td>
+    <td>92.43</td>
+    <td>91.71</td>
+  </tr>
+  <tr>
+    <td rowspan="6">ResCNN</td>
+    <td>0</td>
+    <td>92.66</td>
+    <td>87.1</td>
+    <td>91.57</td>
+    <td>84.92</td>
+    <td>90.65</td>
+    <td>89.16</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>97.84</td>
+    <td>95.96</td>
+    <td>44.46</td>
+    <td>38.05</td>
+    <td>98.9</td>
+    <td>97.31</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>96.41</td>
+    <td>92.34</td>
+    <td>94.91</td>
+    <td>89.83</td>
+    <td>94.94</td>
+    <td>93.9</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>90.94</td>
+    <td>87.2</td>
+    <td>90.94</td>
+    <td>84.8</td>
+    <td>85.91</td>
+    <td>83.83</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>95.56</td>
+    <td>91.95</td>
+    <td>99.01</td>
+    <td>98.1</td>
+    <td>96</td>
+    <td>94.77</td>
+  </tr>
+  <tr>
+    <td>Average</td>
+    <td>94.68</td>
+    <td>90.91</td>
+    <td>84.18</td>
+    <td>79.14</td>
+    <td>93.28</td>
+    <td>91.79</td>
+  </tr>
+</tbody>
+</table>
+
+### non-TCs accuracy on CIFAR
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="10">SimCNN</td>
+    <td>0</td>
+    <td>78.22</td>
+    <td>78.67</td>
+    <td>45</td>
+    <td>47.67</td>
+    <td>55.22</td>
+    <td>56</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>80.22</td>
+    <td>80.67</td>
+    <td>49.44</td>
+    <td>51.33</td>
+    <td>57.78</td>
+    <td>59</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>77.22</td>
+    <td>78.44</td>
+    <td>39.78</td>
+    <td>40.78</td>
+    <td>56.78</td>
+    <td>58.67</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>76.22</td>
+    <td>77</td>
+    <td>42.22</td>
+    <td>40.11</td>
+    <td>54</td>
+    <td>54.22</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>78.11</td>
+    <td>79</td>
+    <td>44.89</td>
+    <td>44.78</td>
+    <td>60.56</td>
+    <td>61</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>78.11</td>
+    <td>79.44</td>
+    <td>42.56</td>
+    <td>41.56</td>
+    <td>61</td>
+    <td>61.67</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>76.22</td>
+    <td>76.67</td>
+    <td>35.44</td>
+    <td>37.33</td>
+    <td>58.22</td>
+    <td>59.22</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>75.22</td>
+    <td>75.89</td>
+    <td>43.22</td>
+    <td>43.82</td>
+    <td>59.67</td>
+    <td>61.11</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>77.67</td>
+    <td>78.22</td>
+    <td>43</td>
+    <td>42.11</td>
+    <td>61.67</td>
+    <td>62.22</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>77.33</td>
+    <td>78.33</td>
+    <td>41.67</td>
+    <td>43.56</td>
+    <td>61</td>
+    <td>61.56</td>
+  </tr>
+  <tr>
+    <td rowspan="10">ResCNN</td>
+    <td>0</td>
+    <td>80.78</td>
+    <td>82.33</td>
+    <td>39.11</td>
+    <td>42.89</td>
+    <td>58.33</td>
+    <td>59.33</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>82.56</td>
+    <td>83</td>
+    <td>43.78</td>
+    <td>44.22</td>
+    <td>56.33</td>
+    <td>58</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>81</td>
+    <td>81.78</td>
+    <td>44.89</td>
+    <td>44.93</td>
+    <td>57.22</td>
+    <td>58.89</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>82</td>
+    <td>82.67</td>
+    <td>48.89</td>
+    <td>47.67</td>
+    <td>63.33</td>
+    <td>63.67</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>79.44</td>
+    <td>80.67</td>
+    <td>49.22</td>
+    <td>50.67</td>
+    <td>61.11</td>
+    <td>62.33</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>78.89</td>
+    <td>79.67</td>
+    <td>36.22</td>
+    <td>37.11</td>
+    <td>60.44</td>
+    <td>60.89</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>80.78</td>
+    <td>81.67</td>
+    <td>33.44</td>
+    <td>35.89</td>
+    <td>63.33</td>
+    <td>63.78</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>81.89</td>
+    <td>82.67</td>
+    <td>46.22</td>
+    <td>49.67</td>
+    <td>62.22</td>
+    <td>63.67</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>79.89</td>
+    <td>80.44</td>
+    <td>43.78</td>
+    <td>43.89</td>
+    <td>60.44</td>
+    <td>61.22</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>84.33</td>
+    <td>84.67</td>
+    <td>42.44</td>
+    <td>48.33</td>
+    <td>59.78</td>
+    <td>61</td>
+  </tr>
+</tbody>
+</table>
+
+
+### non-TCs accuracy on SVHN
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Model</th>
+    <th rowspan="2">TC</th>
+    <th colspan="2">Simple</th>
+    <th colspan="2">Underfitting</th>
+    <th colspan="2">Overfitting</th>
+  </tr>
+  <tr>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+    <th>weak</th>
+    <th>patch</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="5">SimCNN</td>
+    <td>0</td>
+    <td>89.04</td>
+    <td>90.03</td>
+    <td>47.88</td>
+    <td>49.01</td>
+    <td>91.33</td>
+    <td>91.77</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>87.92</td>
+    <td>88.02</td>
+    <td>68.98</td>
+    <td>70.07</td>
+    <td>92.13</td>
+    <td>92.4</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>88.5</td>
+    <td>89.88</td>
+    <td>89.78</td>
+    <td>90.15</td>
+    <td>90.83</td>
+    <td>91.17</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>88.59</td>
+    <td>90.55</td>
+    <td>87.85</td>
+    <td>89.44</td>
+    <td>91.04</td>
+    <td>91.46</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>90.36</td>
+    <td>91.22</td>
+    <td>75.38</td>
+    <td>77</td>
+    <td>90.37</td>
+    <td>90.82</td>
+  </tr>
+  <tr>
+    <td rowspan="5">ResCNN</td>
+    <td>0</td>
+    <td>87.23</td>
+    <td>89.45</td>
+    <td>87.05</td>
+    <td>90.07</td>
+    <td>91.78</td>
+    <td>92.32</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>82.46</td>
+    <td>85.82</td>
+    <td>49.58</td>
+    <td>49.99</td>
+    <td>86.48</td>
+    <td>89.67</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>90.97</td>
+    <td>92.61</td>
+    <td>89.31</td>
+    <td>90.58</td>
+    <td>91.46</td>
+    <td>92.25</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>88.47</td>
+    <td>90.51</td>
+    <td>79.16</td>
+    <td>83.13</td>
+    <td>91.09</td>
+    <td>91.68</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>91.15</td>
+    <td>92.29</td>
+    <td>69.87</td>
+    <td>80.31</td>
+    <td>90.98</td>
+    <td>91.75</td>
+  </tr>
+</tbody>
+</table>
